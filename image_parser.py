@@ -5,6 +5,7 @@ from langchain.schema import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 from prompts import food_identifier_prompt
+import json
 
 load_dotenv()
 
@@ -49,7 +50,7 @@ def encode_image(image_path):
         raise
 
 
-def parse_image(image_url, portions=4):
+def parse_image(image_url, portions=4) -> dict:
     """
     Parses the image and returns a list of food items in JSON.
     """
@@ -94,7 +95,7 @@ def parse_image(image_url, portions=4):
     try:
         response = llm.invoke(input=messages)
         print(f"Model invocation successful. Response received:")
-        print(response.content)
+        # print(response.content)
     except Exception as e:
         print(f"Error during model invocation: {e}")
         return
@@ -102,8 +103,9 @@ def parse_image(image_url, portions=4):
         print("Cleaning up temporary files...")
         for portion_path in image_portions:
             os.remove(portion_path)
-
-    return response.content
+    print("returning food items from image" + response.content)
+    print("the type of response in parse_image is", type(json.loads(response.content)))
+    return json.loads(response.content)
 
 
 # Example usage
