@@ -1,11 +1,19 @@
 import streamlit as st
 import os
-from image_parser import parse_image
-from meal_finder import find_meals, find_recipe
 from dotenv import load_dotenv
 import json
+from langchain_core.runnables import RunnableSequence, RunnableLambda
+from image_parser import parse_image
+from meal_finder import find_meals, find_recipe
 
 load_dotenv()
+
+# Set up the chain
+image_parsed_output = RunnableLambda(parse_image)
+meal_finder_output = RunnableLambda(find_meals)
+recipe_finder_output = RunnableLambda(find_recipe)
+
+chain = image_parsed_output | meal_finder_output | recipe_finder_output
 
 # App Title and Description
 st.title("Recipe Finder")
@@ -21,9 +29,8 @@ def fetch_recipe():
     if selected_meal:
         st.write(f"Fetching recipe for: {selected_meal}")
         try:
-            recipe_response = find_recipe(selected_meal)
-            recipe_response = json.loads(recipe_response)
-            if recipe_response and "name" in recipe_response:
+            recipe_response = recipe_finder_output.invoke(selected_meal)
+            if isinstance(recipe_response, dict) and "name" in recipe_response:
                 recipe = recipe_response
                 st.write("Recipe Details:")
                 st.write(f"**Name:** {recipe['name']}")
@@ -54,36 +61,24 @@ if image_file is not None:
     with open(temp_file_path, "wb") as f:
         f.write(image_file.getbuffer())
 
-    # Call parse_image with the file path
+    # Call the chain with the file path
     try:
-        # Extract food items from the image
-        response = parse_image(temp_file_path)
-        response = json.loads(response)  # Parse into JSON
-        if response and "food_items" in response:
-            food_items = response["food_items"]
-            st.write("Food items detected:")
-            st.write(", ".join(food_items))
+        chain_result = chain.invoke(temp_file_path)
 
-            # Find meals that can be prepared with these items
-            st.write("Finding meals...")
-            meals_response = find_meals(food_items)
-            meals_response = json.loads(meals_response)
-            if meals_response and "meals" in meals_response:
-                meals = meals_response["meals"]
-                st.write("Here are some meals you can prepare:")
-                st.json(meals)
+        if isinstance(chain_result, dict) and "meals" in chain_result:
+            meals = chain_result["meals"]
+            st.write("Here are some meals you can prepare:")
+            st.json(meals)
 
-                # Select meal with a callback
-                st.selectbox(
-                    "Choose a meal to get its recipe:",
-                    meals,
-                    key="selected_meal",  # Key for session state
-                    on_change=fetch_recipe,  # Callback function
-                )
-            else:
-                st.error("Could not find meals. Please try again.")
+            # Select meal with a callback
+            st.selectbox(
+                "Choose a meal to get its recipe:",
+                meals,
+                key="selected_meal",  # Key for session state
+                on_change=fetch_recipe,  # Callback function
+            )
         else:
-            st.error("No food items detected. Please try a different image.")
+            st.error("Could not find meals. Please try again.")
     except Exception as e:
         st.error(f"An error occurred: {e}")
     finally:
