@@ -23,8 +23,8 @@ def fetch_recipe():
         try:
             recipe_response = find_recipe(selected_meal)
             recipe_response = json.loads(recipe_response)
-            if recipe_response and "recipe" in recipe_response:
-                recipe = recipe_response["recipe"]
+            if recipe_response and "name" in recipe_response:
+                recipe = recipe_response
                 st.write("Recipe Details:")
                 st.write(f"**Name:** {recipe['name']}")
                 st.write("**Ingredients:**")
@@ -37,6 +37,7 @@ def fetch_recipe():
                 st.error("Could not fetch recipe. Please try again.")
         except Exception as e:
             st.error(f"An error occurred while fetching the recipe: {e}")
+            print(e)
 
 
 # File uploader for images

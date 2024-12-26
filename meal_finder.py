@@ -70,6 +70,7 @@ def find_recipe(food_item):
         temperature=0.0,
         max_retries=2,
         api_key=OPENAI_API_KEY,
+        model_kwargs={"response_format": {"type": "json_object"}},
     )
     print(f"Model initialized successfully.")
 
@@ -77,7 +78,7 @@ def find_recipe(food_item):
     try:
         messages = [
             SystemMessage(content=recipe_finder_prompt),
-            HumanMessage(content=f"Please provide a recipe for: {food_item}."),
+            HumanMessage(content=f"Please provide a recipe for: {str(food_item)}."),
         ]
     except Exception as e:
         print(f"Error preparing messages: {e}")
